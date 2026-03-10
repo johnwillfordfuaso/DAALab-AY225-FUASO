@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptiPath · engineering dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* --- professional / industrial blueprint theme (same functions, fresh design) --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background: #0b1a2b;  /* deep navy blueprint background */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #e3f2fd;
+            overflow: hidden;
+        }
+
+        /* ----- top bar with metallic matte finish ----- */
+        .top-bar {
+            background: #102433;  /* dark denim */
+            padding: 0.75rem 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #2d4c6e;
+            box-shadow: 0 4px 12px rgba(0, 10, 20, 0.6);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1d334a;
+            padding: 5px 18px;
+            border-radius: 40px;
+            border: 1px solid #365f7e;
+            color: #bdd9ff;
+            font-weight: 500;
+            font-size: 0.85rem;
+            letter-spacing: 0.3px;
+        }
+
+        select {
+            background: #0d1f30;
+            color: #d7e9ff;
+            border: 1px solid #2f5577;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 400;
+            cursor: pointer;
+            outline: none;
+            transition: 0.2s;
+            min-width: 115px;
+        }
+        select:hover {
+            border-color: #5c9bd5;
+            background: #112b40;
+        }
+        select:focus {
+            border-color: #7eb3e6;
+            box-shadow: 0 0 0 2px rgba(94, 165, 242, 0.3);
+        }
+
+        /* ----- buttons with technical accent (no pink, all steel/blue) ----- */
+        .btn {
+            border: none;
+            padding: 8px 22px;
+            background: #234a6b;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.5px;
+            border: 1px solid #376582;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .btn:hover {
+            background: #2e5f88;
+            border-color: #69a9e0;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(0, 30, 50, 0.7);
+        }
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            filter: grayscale(0.6);
+        }
+
+        /* distinct action colors – still within blueprint palette */
+        .btn-upload { background: #1d4c6e; border-color: #3f7fb0; }
+        .btn-analyze { background: #204b67; border-color: #4682b4; }
+        .btn-clear { background: #2b4055; border-color: #4c6379; }
+
+        .status {
+            background: #1a3147;
+            border-radius: 40px;
+            padding: 0.4rem 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #bbdef5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #2e5373;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #9ac7ff;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ----- main grid layout (technical drawing style) ----- */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            flex: 1;
+            gap: 14px;
+            padding: 14px;
+            overflow: hidden;
+        }
+
+        .panel {
+            background: #112; /* fallback */
+            background: #0f263b;
+            border: 2px solid #2d4c70;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 8px 18px rgba(0, 10, 25, 0.7);
+            backdrop-filter: blur(1px);
+        }
+
+        .panel-header {
+            background: #17334d;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #2e5c82;
+        }
+
+        .panel-header h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #b3d6ff;
+            text-shadow: 0 1px 2px black;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .panel-actions button {
+            background: #1f3d58;
+            border: 1px solid #3e6c94;
+            color: #e2efff;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .panel-actions button:hover {
+            background: #2c5780;
+            border-color: #78b1e3;
+        }
+
+        /* monospace pre areas with blueprint grid background */
+        .pre-area {
+            flex: 1;
+            margin: 0;
+            padding: 24px 22px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            background: #0b1f32;        /* deep blueprint sheet */
+            color: #c9e0ff;
+            background-image: 
+                linear-gradient(rgba(40, 100, 160, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(40, 100, 160, 0.08) 1px, transparent 1px);
+            background-size: 24px 24px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: none;
+            box-shadow: inset 0 0 30px rgba(0, 15, 40, 0.9);
+        }
+
+        /* left panel slight tint variation */
+        .left-pane .pre-area {
+            background-color: #0b1d30;
+            color: #d3eaff;
+        }
+        /* right panel different subtle grid */
+        .right-pane .pre-area {
+            background-color: #0c1f33;
+            color: #cae2fc;
+            background-image: 
+                linear-gradient(rgba(60, 140, 210, 0.12) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(50, 130, 210, 0.08) 1px, transparent 1px);
+        }
+
+        /* scrollbar matching theme */
+        .pre-area::-webkit-scrollbar { width: 10px; }
+        .pre-area::-webkit-scrollbar-track { background: #102a40; border-radius: 8px; }
+        .pre-area::-webkit-scrollbar-thumb { background: #2f5780; border-radius: 8px; border: 2px solid #1c3b58; }
+        .pre-area::-webkit-scrollbar-thumb:hover { background: #4782c0; }
+
+        /* toast notification */
+        .toast-msg {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: #1d3f5e;
+            color: #ebf5ff;
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-weight: 500;
+            border-left: 6px solid #6eb0f0;
+            box-shadow: 0 6px 18px #00000055;
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            animation: slideInRight 0.25s;
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @media (max-width: 700px) {
+            .workspace { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="controls">
+        <div class="group">
+            <span>📍 SOURCE</span>
+            <select id="sourceCombo"><option value="">— select —</option></select>
+        </div>
+        <div class="group">
+            <span>⚙️ CRITERIA</span>
+            <select id="criteriaCombo">
+                <option value="FUEL">⛽ FUEL (L)</option>
+                <option value="DISTANCE">📏 DISTANCE (km)</option>
+                <option value="TIME">⏱️ TIME (min)</option>
+                <option value="ALL">🔀 ALL</option>
+            </select>
+        </div>
+        <button id="uploadBtn" class="btn btn-upload">📂 UPLOAD EXCEL</button>
+        <input type="file" id="xlsxInput" accept=".xlsx, .xls, .csv" style="display:none">
+        <button id="analyzeBtn" class="btn btn-analyze" disabled>⚡ ANALYZE</button>
+        <button id="clearBtn" class="btn btn-clear">🗑 CLEAR</button>
+    </div>
+    <div id="statusLabel" class="status">
+        <span>📁 no dataset</span>
+    </div>
+</div>
+
+<main class="workspace">
+    <!-- left: calculation panel -->
+    <section class="panel left-pane">
+        <div class="panel-header">
+            <h3>📐 PATH CALCULATION (TRACE)</h3>
+            <div class="panel-actions">
+                <button id="copyCalcBtn" title="copy">📋</button>
+                <button id="clearCalcBtn" title="clear">✖️</button>
+            </div>
+        </div>
+        <pre id="calcArea" class="pre-area">📤 load excel file and press analyze</pre>
+    </section>
+    <!-- right: summary panel -->
+    <section class="panel right-pane">
+        <div class="panel-header">
+            <h3>🏁 OPTIMAL PATH SUMMARY</h3>
+            <div class="panel-actions">
+                <button id="copySummaryBtn" title="copy">📋</button>
+                <button id="clearSummaryBtn" title="clear">✖️</button>
+            </div>
+        </div>
+        <pre id="summaryArea" class="pre-area">📊 results appear here</pre>
+    </section>
+</main>
+
+<script>
+    (function() {
+        // ---- state management (exactly same logic, only visual refresh) ----
+        let edges = [];
+        let nodes = [];
+        let fileName = '';
+        let pathCache = new Map();
+
+        const sourceCombo = document.getElementById('sourceCombo');
+        const calcArea = document.getElementById('calcArea');
+        const summaryArea = document.getElementById('summaryArea');
+        const xlsxInput = document.getElementById('xlsxInput');
+        const statusLabel = document.getElementById('statusLabel');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const criteriaCombo = document.getElementById('criteriaCombo');
+
+        // --- toast (blue edition) ---
+        function showToast(message, duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = 'toast-msg';
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), duration);
+        }
+
+        function setStatus(text, isLoading = false) {
+            if (isLoading) {
+                statusLabel.innerHTML = `<span class="loading-spinner"></span> ${text}`;
+            } else {
+                statusLabel.innerHTML = `<span>${text}</span>`;
+            }
+        }
+
+        // --- upload handler (unchanged logic) ---
+        document.getElementById('uploadBtn').onclick = () => xlsxInput.click();
+        xlsxInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            setStatus('loading workbook...', true);
+            fileName = file.name;
+            analyzeBtn.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+                    if (rows.length < 2) throw new Error('need header + data rows');
+
+                    edges = [];
+                    const nodeSet = new Set();
+                    let valid = 0;
+                    let skipped = 0;
+
+                    for (let i=1; i<rows.length; i++) {
+                        const row = rows[i];
+                        if (!row || row.length < 5) { skipped++; continue; }
+                        const from = String(row[0]).trim();
+                        const to = String(row[1]).trim();
+                        const dist = parseFloat(row[2]);
+                        const time = parseFloat(row[3]);
+                        const fuel = parseFloat(row[4]);
+                        if (!from || !to || isNaN(dist) || isNaN(time) || isNaN(fuel) || dist<0 || time<0 || fuel<0) {
+                            skipped++; continue;
+                        }
+                        edges.push({ from, to, dist, time, fuel });
+                        nodeSet.add(from); nodeSet.add(to);
+                        valid++;
+                    }
+                    if (valid === 0) throw new Error('no valid edges');
+
+                    nodes = Array.from(nodeSet).sort((a,b) => {
+                        const aNum = parseFloat(a), bNum = parseFloat(b);
+                        if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+                        return String(a).localeCompare(String(b));
+                    });
+
+                    sourceCombo.innerHTML = '<option value="">choose source...</option>' + 
+                        nodes.map(n => `<option value="${n}">${n}</option>`).join('');
+
+                    setStatus(`✅ ${valid} edges loaded · ${skipped} rows skipped`);
+                    analyzeBtn.disabled = false;
+                    pathCache.clear();   // fresh cache for new dataset
+                    showToast(`loaded ${valid} connections`, 2000);
+                } catch (err) {
+                    setStatus(`❌ ${err.message}`);
+                    showToast('error: ' + err.message, 4000);
+                    analyzeBtn.disabled = true;
+                }
+            };
+            reader.onerror = () => {
+                setStatus('❌ read error');
+                showToast('file read error', 3000);
+                analyzeBtn.disabled = true;
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        // --- findAllPaths (identical) ---
+        function findAllPaths(start, end) {
+            const key = `${start}|${end}`;
+            if (pathCache.has(key)) return pathCache.get(key);
+
+            const results = [];
+            const stack = [{ path: [start], visited: new Set([start]) }];
+
+            while (stack.length) {
+                const { path, visited } = stack.pop();
+                const last = path[path.length-1];
+
+                if (last === end) {
+                    let d=0, t=0, f=0;
+                    for (let i=0; i<path.length-1; i++) {
+                        const e = edges.find(ed => ed.from === path[i] && ed.to === path[i+1]);
+                        if (e) { d += e.dist; t += e.time; f += e.fuel; }
+                    }
+                    results.push({ path: [...path], distance: d, time: t, fuel: f });
+                    continue;
+                }
+
+                edges.filter(e => e.from === last).forEach(e => {
+                    if (!visited.has(e.to)) {
+                        const newVisited = new Set(visited);
+                        newVisited.add(e.to);
+                        stack.push({ path: [...path, e.to], visited: newVisited });
+                    }
+                });
+            }
+
+            if (pathCache.size > 200) { // limit cache size
+                const first = pathCache.keys().next().value;
+                pathCache.delete(first);
+            }
+            pathCache.set(key, results);
+            return results;
+        }
+
+        // --- analysis (identical core) ---
+        function analyze() {
+            if (!edges.length) {
+                calcArea.innerText = '⚠️ upload dataset first.';
+                return;
+            }
+            const src = sourceCombo.value;
+            if (!src) {
+                showToast('select source node', 3000);
+                return;
+            }
+            const mode = criteriaCombo.value;
+            const dests = nodes.filter(n => n !== src);
+            if (!dests.length) {
+                calcArea.innerText = '⚠️ no destinations.';
+                return;
+            }
+
+            setStatus('computing optimal paths...', true);
+            analyzeBtn.disabled = true;
+
+            setTimeout(() => {
+                try {
+                    let calcText = '', summaryText = '';
+                    const modes = mode === 'ALL' ? ['FUEL', 'DISTANCE', 'TIME'] : [mode];
+
+                    modes.forEach(m => {
+                        calcText += buildCalcBlock(src, dests, m);
+                        summaryText += buildSummaryBlock(src, dests, m);
+                    });
+
+                    calcArea.innerText = calcText || 'no results';
+                    summaryArea.innerText = summaryText || 'no results';
+                    calcArea.scrollTop = 0; summaryArea.scrollTop = 0;
+                    setStatus(`✅ analysis complete (${modes.length} criteria)`);
+                    showToast('analysis finished', 2000);
+                } catch (err) {
+                    setStatus(`❌ ${err.message}`);
+                    showToast('error: ' + err.message, 4000);
+                } finally {
+                    analyzeBtn.disabled = false;
+                }
+            }, 100);
+        }
+
+        // --- helper: fmt ---
+        function fmt(v) { return Number.isInteger(v) ? v : v.toFixed(1); }
+
+        function buildCalcBlock(src, dests, mode) {
+            const unit = { FUEL:'L', DISTANCE:'km', TIME:'min' }[mode];
+            const bar = (ch, n) => '  ' + ch.repeat(n) + '\n';
+            let sb = bar('═', 70) + `  📐 ${mode} · all traced paths\n` + bar('─', 70) + '\n';
+            let totalMin = 0, unreach = 0;
+
+            dests.forEach(dst => {
+                const paths = findAllPaths(src, dst);
+                if (!paths.length) {
+                    sb += `  ⚠️ ${src} → ${dst} : unreachable\n\n`;
+                    unreach++;
+                    return;
+                }
+
+                paths.sort((a,b) => a[mode.toLowerCase()] - b[mode.toLowerCase()]);
+                const bestVal = paths[0][mode.toLowerCase()];
+                totalMin += bestVal;
+
+                sb += `  🧩 ${src} → ${dst}\n` + bar('-', 62);
+
+                paths.forEach(p => {
+                    const val = p[mode.toLowerCase()];
+                    const segs = [];
+                    const runVals = [];
+                    for (let i=0; i<p.path.length-1; i++) {
+                        const e = edges.find(ed => ed.from === p.path[i] && ed.to === p.path[i+1]);
+                        if (e) {
+                            const ev = e[mode.toLowerCase() === 'distance' ? 'dist' : mode.toLowerCase()];
+                            segs.push(`${p.path[i]}→${p.path[i+1]}=${fmt(ev)}`);
+                            runVals.push(fmt(ev));
+                        }
+                    }
+                    const star = val === bestVal ? '  ✅ BEST' : '';
+                    if (p.path.length === 2) {
+                        sb += `  ${segs[0]}  (${fmt(val)} ${unit})${star}\n`;
+                    } else {
+                        sb += `  ${segs.join(' + ')}\n      = ${runVals.join(' + ')} = ${fmt(val)} ${unit}${star}\n`;
+                    }
+                });
+                sb += '\n';
+            });
+
+            sb += bar('═', 70) + `  📈 TOTAL (cheapest ${mode}) = ${totalMin.toFixed(2)} ${unit}\n`;
+            if (unreach) sb += `  ⚠️ ${unreach} unreachable\n`;
+            sb += bar('═', 70) + '\n';
+            return sb;
+        }
+
+        function buildSummaryBlock(src, dests, mode) {
+            const unit = { FUEL:'L', DISTANCE:'km', TIME:'min' }[mode];
+            const bar = (ch, n) => '  ' + ch.repeat(n) + '\n';
+            let sb = bar('═', 60) + `  🏆 OPTIMAL · ${mode} from ${src}\n` + bar('═', 60);
+            sb += `  ${'DEST'.padEnd(8)}  ${'BEST PATH'.padEnd(28)}  ${'VALUE'}\n` + bar('─', 60);
+
+            let total = 0, reachable = 0;
+            dests.forEach(dst => {
+                const paths = findAllPaths(src, dst);
+                if (!paths.length) {
+                    sb += `  ${dst.padEnd(8)}  ${'(unreachable)'.padEnd(28)}  N/A\n`;
+                    return;
+                }
+                paths.sort((a,b) => a[mode.toLowerCase()] - b[mode.toLowerCase()]);
+                const best = paths[0];
+                total += best[mode.toLowerCase()];
+                reachable++;
+                const pathStr = best.path.join('→');
+                sb += `  ${dst.padEnd(8)}  ${pathStr.padEnd(28)}  ${best[mode.toLowerCase()].toFixed(2)} ${unit}\n`;
+            });
+
+            sb += bar('─', 60);
+            sb += `  TOTAL     ${'(cheapest)'.padEnd(28)}  ${total.toFixed(2)} ${unit}\n`;
+            sb += `  REACHABLE ${`${reachable}/${dests.length}`.padEnd(28)}\n`;
+            sb += bar('═', 60) + '\n';
+            return sb;
+        }
+
+        // --- clear functions ---
+        function clearAll() {
+            calcArea.innerText = '📤 load excel file and press analyze';
+            summaryArea.innerText = '📊 results appear here';
+            showToast('cleared panels', 1500);
+        }
+
+        // --- copy functions ---
+        function copyText(text, label) {
+            navigator.clipboard.writeText(text).then(() => showToast(`📋 ${label} copied`)).catch(() => showToast('copy failed', 3000));
+        }
+
+        // --- attach events (identical behavior) ---
+        document.getElementById('analyzeBtn').onclick = analyze;
+        document.getElementById('clearBtn').onclick = clearAll;
+        document.getElementById('clearCalcBtn').onclick = () => { calcArea.innerText = '📤 load excel file and press analyze'; };
+        document.getElementById('clearSummaryBtn').onclick = () => { summaryArea.innerText = '📊 results appear here'; };
+        document.getElementById('copyCalcBtn').onclick = () => copyText(calcArea.innerText, 'calculation');
+        document.getElementById('copySummaryBtn').onclick = () => copyText(summaryArea.innerText, 'summary');
+
+        // keyboard shortcuts (same)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); analyze(); }
+            if (e.ctrlKey && e.key === 'o') { e.preventDefault(); xlsxInput.click(); }
+        });
+
+        setStatus('📁 ready · upload excel');
+    })();
+</script>
+</body>
+</html>
