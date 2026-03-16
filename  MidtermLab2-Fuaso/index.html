@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Enhanced Node Network · Multi-Criteria Path Finder</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            padding: 28px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .title-section h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e2f4d, #2a4a7a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .title-section p {
+            color: #4a5568;
+            font-size: 1rem;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, #1e3a6b, #2d4b8f);
+            border-radius: 30px;
+            padding: 16px 28px;
+            color: white;
+            display: flex;
+            gap: 32px;
+            box-shadow: 0 10px 30px -10px #1e3a6b;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .map-container {
+            background: #f8fafd;
+            border-radius: 30px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        .map-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #2d3748;
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 4px;
+            border-radius: 4px;
+        }
+
+        .legend-color.regular { background: #94a3b8; }
+        .legend-color.path { background: #ef4444; height: 5px; width: 30px; }
+        .legend-color.alternative { background: #f59e0b; height: 5px; width: 30px; opacity: 0.6; }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #1e3a6b;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #1e3a6b;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .panel-card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            border: 1px solid #e9eef3;
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .metric-btn {
+            background: #f1f5f9;
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 16px 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .metric-btn:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+        .metric-btn.active {
+            background: #1e3a6b;
+            color: white;
+            border-color: #2d4b8f;
+        }
+
+        .metric-btn .metric-icon {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+        }
+
+        .metric-btn .metric-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .metric-btn .metric-unit {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .node-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .select-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .select-wrapper select {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 18px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #1e293b;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+            transition: all 0.2s;
+        }
+
+        .select-wrapper select:hover {
+            border-color: #94a3b8;
+        }
+
+        .select-wrapper select:focus {
+            outline: none;
+            border-color: #1e3a6b;
+            box-shadow: 0 0 0 3px rgba(30, 58, 107, 0.1);
+        }
+
+        .select-wrapper::after {
+            content: '▼';
+            font-size: 0.8rem;
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            pointer-events: none;
+        }
+
+        .swap-btn {
+            background: #f1f5f9;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .swap-btn:hover {
+            background: #e2e8f0;
+            transform: rotate(180deg);
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #1e3a6b, #2d4b8f);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px #1e3a6b;
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .secondary-btn {
+            width: 100%;
+            padding: 14px;
+            background: #f1f5f9;
+            color: #1e293b;
+            border: 2px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .secondary-btn:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 24px;
+            padding: 24px;
+        }
+
+        .path-display {
+            background: white;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 6px solid #1e3a6b;
+        }
+
+        .path-steps {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: 16px 0;
+            font-size: 1.2rem;
+        }
+
+        .path-node {
+            background: #1e3a6b;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .path-arrow {
+            color: #64748b;
+            font-size: 1.2rem;
+        }
+
+        .metrics-breakdown {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .metric-badge {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .metric-badge .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e3a6b;
+        }
+
+        .metric-badge .label {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .alternative-paths {
+            margin-top: 20px;
+        }
+
+        .alt-path-item {
+            background: white;
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .alt-path-item:hover {
+            background: #f8fafc;
+            border-color: #f59e0b;
+        }
+
+        .alt-path-item .path-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge.distance { background: #e0f2fe; color: #0369a1; }
+        .badge.time { background: #dcfce7; color: #166534; }
+        .badge.fuel { background: #fed7aa; color: #9a3412; }
+
+        .zoom-controls {
+            display: flex;
+            gap: 8px;
+            background: white;
+            padding: 8px;
+            border-radius: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: #f1f5f9;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background: #e2e8f0;
+        }
+
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <div class="title-section">
+                <h1>🚗 Cavite Node Network</h1>
+                <p>Interactive path finding · Multi-criteria optimization · Real-time visualization</p>
+            </div>
+            <div class="stats-card">
+                <div class="stat-item">
+                    <div class="stat-value" id="nodeCount">8</div>
+                    <div class="stat-label">Nodes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="edgeCount">13</div>
+                    <div class="stat-label">Routes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="networkDensity">0.46</div>
+                    <div class="stat-label">Density</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <canvas id="graphCanvas" width="1200" height="500"></canvas>
+            <div class="map-controls">
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-color regular"></span>
+                        <span>Regular routes</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color path"></span>
+                        <span>Shortest path</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color alternative"></span>
+                        <span>Alternative path</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot"></span>
+                        <span>Locations</span>
+                    </div>
+                </div>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" id="zoomIn">+</button>
+                    <button class="zoom-btn" id="zoomOut">-</button>
+                    <button class="zoom-btn" id="resetView">↺</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>🎯</span> Path Criteria
+                </div>
+                <div class="metric-grid" id="metricSelector">
+                    <div class="metric-btn active" data-metric="distance">
+                        <div class="metric-icon">📏</div>
+                        <div class="metric-label">Distance</div>
+                        <div class="metric-unit">km</div>
+                    </div>
+                    <div class="metric-btn" data-metric="time">
+                        <div class="metric-icon">⏱️</div>
+                        <div class="metric-label">Time</div>
+                        <div class="metric-unit">mins</div>
+                    </div>
+                    <div class="metric-btn" data-metric="fuel">
+                        <div class="metric-icon">⛽</div>
+                        <div class="metric-label">Fuel</div>
+                        <div class="metric-unit">liters</div>
+                    </div>
+                </div>
+
+                <div class="panel-title" style="margin-top: 24px;">
+                    <span>📍</span> Route Selection
+                </div>
+                <div class="node-selector">
+                    <div class="select-wrapper">
+                        <select id="fromNode"></select>
+                    </div>
+                    <button class="swap-btn" id="swapNodes">⇄</button>
+                    <div class="select-wrapper">
+                        <select id="toNode"></select>
+                    </div>
+                </div>
+
+                <button class="action-btn" id="findPath">
+                    <span>🔍</span> Find Optimal Route
+                </button>
+                
+                <button class="secondary-btn" id="findAlternatives">
+                    <span>🔄</span> Show Alternative Paths
+                </button>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>📊</span> Path Analysis
+                </div>
+                <div class="result-card" id="resultCard">
+                    <div class="path-display" id="pathDisplay">
+                        <div style="color: #64748b; margin-bottom: 12px;">Current Route</div>
+                        <div class="path-steps" id="pathSteps">
+                            <span class="path-node">IMUS</span>
+                            <span class="path-arrow">→</span>
+                            <span class="path-node">BACOOR</span>
+                            <span class="path-arrow">→</span>
+                            <span class="path-node">SILANG</span>
+                            <span class="path-arrow">→</span>
+                            <span class="path-node">GENTRI</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metrics-breakdown" id="metricsBreakdown">
+                        <div class="metric-badge">
+                            <div class="value" id="totalDistance">32.0</div>
+                            <div class="label">Total km</div>
+                        </div>
+                        <div class="metric-badge">
+                            <div class="value" id="totalTime">65</div>
+                            <div class="label">Total mins</div>
+                        </div>
+                        <div class="metric-badge">
+                            <div class="value" id="totalFuel">4.5</div>
+                            <div class="label">Total L</div>
+                        </div>
+                    </div>
+
+                    <div class="alternative-paths" id="alternativePaths" style="display: none;">
+                        <div style="font-weight: 600; margin-bottom: 12px; color: #1e293b;">
+                            🗺️ Alternative Routes (click to view)
+                        </div>
+                        <div id="alternativesList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // Enhanced data structure with bidirectional edges
+            const edges = [
+                { from: 'IMUS', to: 'BACOOR', distance: 10, time: 15, fuel: 1.2 },
+                { from: 'BACOOR', to: 'DASMA', distance: 12, time: 25, fuel: 1.5 },
+                { from: 'DASMA', to: 'KAWIT', distance: 12, time: 25, fuel: 1.5 },
+                { from: 'KAWIT', to: 'INDANG', distance: 12, time: 25, fuel: 1.2 },
+                { from: 'INDANG', to: 'SILANG', distance: 14, time: 25, fuel: 1.5 },
+                { from: 'SILANG', to: 'GENTRI', distance: 10, time: 25, fuel: 1.3 },
+                { from: 'GENTRI', to: 'NOVELETA', distance: 10, time: 25, fuel: 1.5 },
+                { from: 'NOVELETA', to: 'IMUS', distance: 10, time: 15, fuel: 1.2 },
+                { from: 'BACOOR', to: 'SILANG', distance: 10, time: 25, fuel: 1.3 },
+                { from: 'DASMA', to: 'SILANG', distance: 12, time: 25, fuel: 1.5 },
+                { from: 'NOVELETA', to: 'BACOOR', distance: 10, time: 15, fuel: 1.2 },
+                { from: 'SILANG', to: 'KAWIT', distance: 14, time: 25, fuel: 1.2 },
+                { from: 'IMUS', to: 'NOVELETA', distance: 10, time: 15, fuel: 1.2 }
+            ];
+
+            // Get unique nodes
+            const nodes = [...new Set(edges.flatMap(e => [e.from, e.to]))].sort();
+            
+            // Update stats
+            document.getElementById('nodeCount').textContent = nodes.length;
+            document.getElementById('edgeCount').textContent = edges.length;
+            const density = (2 * edges.length / (nodes.length * (nodes.length - 1))).toFixed(2);
+            document.getElementById('networkDensity').textContent = density;
+
+            // Build adjacency list (undirected) - store edges with all metrics
+            const adj = {};
+            nodes.forEach(n => adj[n] = []);
+            
+            // Helper to add edge if not exists (avoid duplicates)
+            function addEdgeIfNotExists(from, to, distance, time, fuel) {
+                // Check if edge already exists
+                const exists = adj[from].some(e => e.to === to);
+                if (!exists) {
+                    adj[from].push({ to, distance, time, fuel });
+                }
+            }
+
+            // Add all edges bidirectionally
+            edges.forEach(e => {
+                addEdgeIfNotExists(e.from, e.to, e.distance, e.time, e.fuel);
+                addEdgeIfNotExists(e.to, e.from, e.distance, e.time, e.fuel);
+            });
+
+            // Enhanced coordinates with more spread
+            const coord = {
+                'IMUS': { x: 350, y: 350 },
+                'BACOOR': { x: 220, y: 220 },
+                'DASMA': { x: 380, y: 120 },
+                'KAWIT': { x: 550, y: 100 },
+                'INDANG': { x: 700, y: 160 },
+                'SILANG': { x: 750, y: 300 },
+                'GENTRI': { x: 650, y: 400 },
+                'NOVELETA': { x: 450, y: 450 }
+            };
+
+            // Canvas setup
+            const canvas = document.getElementById('graphCanvas');
+            const ctx = canvas.getContext('2d');
+            let scale = 1;
+            let offsetX = 0, offsetY = 0;
+            let isDragging = false;
+            let lastX, lastY;
+
+            // Zoom and pan functionality
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastX = e.offsetX;
+                lastY = e.offsetY;
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const dx = e.offsetX - lastX;
+                    const dy = e.offsetY - lastY;
+                    offsetX += dx;
+                    offsetY += dy;
+                    lastX = e.offsetX;
+                    lastY = e.offsetY;
+                    drawGraph();
+                }
+            });
+
+            canvas.addEventListener('mouseup', () => isDragging = false);
+            canvas.addEventListener('mouseleave', () => isDragging = false);
+
+            document.getElementById('zoomIn').addEventListener('click', () => {
+                scale *= 1.2;
+                drawGraph();
+            });
+
+            document.getElementById('zoomOut').addEventListener('click', () => {
+                scale /= 1.2;
+                drawGraph();
+            });
+
+            document.getElementById('resetView').addEventListener('click', () => {
+                scale = 1;
+                offsetX = 0;
+                offsetY = 0;
+                drawGraph();
+            });
+
+            // Transform coordinates
+            function transformPoint(p) {
+                return {
+                    x: p.x * scale + offsetX,
+                    y: p.y * scale + offsetY
+                };
+            }
+
+            // Dijkstra's algorithm with path reconstruction
+            function dijkstra(start, end, metric) {
+                const distances = {};
+                const previous = {};
+                const unvisited = new Set(nodes);
+                
+                nodes.forEach(n => {
+                    distances[n] = Infinity;
+                    previous[n] = null;
+                });
+                distances[start] = 0;
+
+                while (unvisited.size > 0) {
+                    let current = null;
+                    let minDist = Infinity;
+                    
+                    unvisited.forEach(n => {
+                        if (distances[n] < minDist) {
+                            minDist = distances[n];
+                            current = n;
+                        }
+                    });
+
+                    if (current === null || current === end) break;
+                    unvisited.delete(current);
+
+                    for (const neighbor of adj[current]) {
+                        if (unvisited.has(neighbor.to)) {
+                            const alt = distances[current] + neighbor[metric];
+                            if (alt < distances[neighbor.to]) {
+                                distances[neighbor.to] = alt;
+                                previous[neighbor.to] = current;
+                            }
+                        }
+                    }
+                }
+
+                // Reconstruct path
+                const path = [];
+                let current = end;
+                while (current !== null) {
+                    path.unshift(current);
+                    current = previous[current];
+                }
+
+                return (path.length > 0 && path[0] === start) ? path : [];
+            }
+
+            // Find alternative paths - FIXED VERSION
+            function findAlternativePaths(start, end, metric, maxAlternatives = 3) {
+                const mainPath = dijkstra(start, end, metric);
+                if (mainPath.length === 0) return [];
+
+                const alternatives = [];
+                const usedEdgeKeys = new Set();
+
+                // Store the original adjacency list as a string to restore later
+                const originalAdjJSON = JSON.stringify(adj);
+
+                // Try removing each edge in the main path to find alternatives
+                for (let i = 0; i < mainPath.length - 1; i++) {
+                    const from = mainPath[i];
+                    const to = mainPath[i + 1];
+                    
+                    // Create a unique key for this undirected edge
+                    const edgeKey = [from, to].sort().join('-');
+                    
+                    if (!usedEdgeKeys.has(edgeKey)) {
+                        usedEdgeKeys.add(edgeKey);
+                        
+                        // Restore original graph before each removal
+                        Object.assign(adj, JSON.parse(originalAdjJSON));
+                        
+                        // Remove this edge from both directions
+                        adj[from] = adj[from].filter(e => e.to !== to);
+                        adj[to] = adj[to].filter(e => e.to !== from);
+                        
+                        // Find alternative path with this edge removed
+                        const altPath = dijkstra(start, end, metric);
+                        
+                        // Check if it's a valid alternative (exists and different from main path)
+                        if (altPath.length > 0) {
+                            const altPathStr = altPath.join('->');
+                            const mainPathStr = mainPath.join('->');
+                            
+                            if (altPathStr !== mainPathStr) {
+                                // Check if we already have this alternative
+                                const exists = alternatives.some(p => p.join('->') === altPathStr);
+                                if (!exists) {
+                                    alternatives.push(altPath);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Restore original graph
+                Object.assign(adj, JSON.parse(originalAdjJSON));
+
+                // Also try removing combinations of edges for more alternatives
+                if (alternatives.length < maxAlternatives && mainPath.length > 2) {
+                    for (let i = 0; i < mainPath.length - 2; i++) {
+                        for (let j = i + 1; j < mainPath.length - 1; j++) {
+                            const from1 = mainPath[i];
+                            const to1 = mainPath[i + 1];
+                            const from2 = mainPath[j];
+                            const to2 = mainPath[j + 1];
+                            
+                            const edgeKey1 = [from1, to1].sort().join('-');
+                            const edgeKey2 = [from2, to2].sort().join('-');
+                            
+                            if (edgeKey1 !== edgeKey2) {
+                                // Restore original
+                                Object.assign(adj, JSON.parse(originalAdjJSON));
+                                
+                                // Remove both edges
+                                adj[from1] = adj[from1].filter(e => e.to !== to1);
+                                adj[to1] = adj[to1].filter(e => e.to !== from1);
+                                adj[from2] = adj[from2].filter(e => e.to !== to2);
+                                adj[to2] = adj[to2].filter(e => e.to !== from2);
+                                
+                                const altPath = dijkstra(start, end, metric);
+                                if (altPath.length > 0) {
+                                    const altPathStr = altPath.join('->');
+                                    const mainPathStr = mainPath.join('->');
+                                    
+                                    if (altPathStr !== mainPathStr) {
+                                        const exists = alternatives.some(p => p.join('->') === altPathStr);
+                                        if (!exists) {
+                                            alternatives.push(altPath);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Restore original graph one final time
+                Object.assign(adj, JSON.parse(originalAdjJSON));
+
+                // Return unique alternatives (limited to maxAlternatives)
+                return alternatives.slice(0, maxAlternatives);
+            }
+
+            // Calculate total metrics for a path
+            function calculatePathMetrics(path) {
+                let distance = 0, time = 0, fuel = 0;
+                
+                for (let i = 0; i < path.length - 1; i++) {
+                    const from = path[i];
+                    const to = path[i + 1];
+                    const edge = adj[from].find(e => e.to === to);
+                    if (edge) {
+                        distance += edge.distance;
+                        time += edge.time;
+                        fuel += edge.fuel;
+                    }
+                }
+                
+                return { distance, time, fuel };
+            }
+
+            // Enhanced drawing function
+            function drawGraph(highlightPath = null, alternativePaths = []) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw all edges in gray first
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#94a3b8';
+                ctx.globalAlpha = 0.3;
+                
+                const drawn = new Set();
+                edges.forEach(edge => {
+                    const key = [edge.from, edge.to].sort().join('-');
+                    if (!drawn.has(key)) {
+                        drawn.add(key);
+                        const from = transformPoint(coord[edge.from]);
+                        const to = transformPoint(coord[edge.to]);
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(from.x, from.y);
+                        ctx.lineTo(to.x, to.y);
+                        ctx.strokeStyle = '#94a3b8';
+                        ctx.stroke();
+                    }
+                });
+
+                // Draw alternative paths if any
+                if (alternativePaths && alternativePaths.length > 0) {
+                    ctx.lineWidth = 4;
+                    ctx.globalAlpha = 0.4;
+                    alternativePaths.forEach(path => {
+                        if (path.length < 2) return;
+                        ctx.beginPath();
+                        for (let i = 0; i < path.length - 1; i++) {
+                            const from = transformPoint(coord[path[i]]);
+                            const to = transformPoint(coord[path[i + 1]]);
+                            ctx.moveTo(from.x, from.y);
+                            ctx.lineTo(to.x, to.y);
+                        }
+                        ctx.strokeStyle = '#f59e0b';
+                        ctx.stroke();
+                    });
+                }
+
+                // Draw highlight path
+                if (highlightPath && highlightPath.length >= 2) {
+                    ctx.lineWidth = 6;
+                    ctx.globalAlpha = 1;
+                    ctx.beginPath();
+                    for (let i = 0; i < highlightPath.length - 1; i++) {
+                        const from = transformPoint(coord[highlightPath[i]]);
+                        const to = transformPoint(coord[highlightPath[i + 1]]);
+                        ctx.moveTo(from.x, from.y);
+                        ctx.lineTo(to.x, to.y);
+                    }
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.stroke();
+                }
+
+                // Draw nodes
+                nodes.forEach(node => {
+                    const p = transformPoint(coord[node]);
+                    
+                    // Glow effect
+                    ctx.shadowColor = '#1e3a6b';
+                    ctx.shadowBlur = 15;
+                    
+                    // Node circle
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 22 * scale, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fill();
+                    ctx.strokeStyle = '#1e3a6b';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    
+                    // Node label
+                    ctx.shadowBlur = 0;
+                    ctx.font = `bold ${16 * scale}px 'Inter', sans-serif`;
+                    ctx.fillStyle = '#1e293b';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(node, p.x, p.y);
+                });
+
+                // Draw edge labels
+                ctx.globalAlpha = 0.9;
+                ctx.font = `${12 * scale}px 'Inter', monospace`;
+                ctx.fillStyle = '#1e3a6b';
+                
+                const labelled = new Set();
+                edges.forEach(edge => {
+                    const key = [edge.from, edge.to].sort().join('_');
+                    if (!labelled.has(key)) {
+                        labelled.add(key);
+                        const from = transformPoint(coord[edge.from]);
+                        const to = transformPoint(coord[edge.to]);
+                        const mx = (from.x + to.x) / 2;
+                        const my = (from.y + to.y) / 2;
+                        
+                        // Label background
+                        ctx.fillStyle = '#ffffffee';
+                        ctx.shadowBlur = 6;
+                        ctx.shadowColor = '#94a3b8';
+                        ctx.beginPath();
+                        roundRect(ctx, mx - 50, my - 18, 100, 30, 10);
+                        ctx.fill();
+                        
+                        // Label text
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = '#1e293b';
+                        ctx.fillText(`${edge.distance}km · ${edge.time}m · ${edge.fuel}L`, mx, my);
+                    }
+                });
+            }
+
+            // Helper function for rounded rectangles
+            function roundRect(ctx, x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                ctx.beginPath();
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                ctx.lineTo(x + r, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+                ctx.closePath();
+                return ctx;
+            }
+
+            // Populate dropdowns
+            const fromSelect = document.getElementById('fromNode');
+            const toSelect = document.getElementById('toNode');
+            
+            nodes.forEach(node => {
+                fromSelect.add(new Option(node, node));
+                toSelect.add(new Option(node, node));
+            });
+            
+            fromSelect.value = 'IMUS';
+            toSelect.value = 'GENTRI';
+
+            // Metric selection
+            const metricBtns = document.querySelectorAll('.metric-btn');
+            let currentMetric = 'distance';
+            
+            metricBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    metricBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentMetric = btn.dataset.metric;
+                    findPath();
+                });
+            });
+
+            // Swap nodes
+            document.getElementById('swapNodes').addEventListener('click', () => {
+                const from = fromSelect.value;
+                const to = toSelect.value;
+                fromSelect.value = to;
+                toSelect.value = from;
+                findPath();
+            });
+
+            // Find path function
+            function findPath() {
+                const from = fromSelect.value;
+                const to = toSelect.value;
+                
+                if (from === to) {
+                    alert('Please select different nodes');
+                    return;
+                }
+
+                const path = dijkstra(from, to, currentMetric);
+                
+                if (path.length === 0) {
+                    document.getElementById('pathSteps').innerHTML = 'No path found';
+                    return;
+                }
+
+                // Update path display
+                const pathSteps = document.getElementById('pathSteps');
+                pathSteps.innerHTML = '';
+                path.forEach((node, index) => {
+                    const span = document.createElement('span');
+                    span.className = 'path-node';
+                    span.textContent = node;
+                    pathSteps.appendChild(span);
+                    
+                    if (index < path.length - 1) {
+                        const arrow = document.createElement('span');
+                        arrow.className = 'path-arrow';
+                        arrow.textContent = '→';
+                        pathSteps.appendChild(arrow);
+                    }
+                });
+
+                // Update metrics
+                const metrics = calculatePathMetrics(path);
+                document.getElementById('totalDistance').textContent = metrics.distance.toFixed(1);
+                document.getElementById('totalTime').textContent = Math.round(metrics.time);
+                document.getElementById('totalFuel').textContent = metrics.fuel.toFixed(2);
+
+                // Hide alternatives
+                document.getElementById('alternativePaths').style.display = 'none';
+                
+                // Draw graph
+                drawGraph(path);
+            }
+
+            // Find alternatives - FIXED EVENT HANDLER
+            document.getElementById('findAlternatives').addEventListener('click', () => {
+                const from = fromSelect.value;
+                const to = toSelect.value;
+                
+                if (from === to) {
+                    alert('Please select different nodes');
+                    return;
+                }
+
+                const mainPath = dijkstra(from, to, currentMetric);
+                
+                if (mainPath.length === 0) {
+                    alert('No path found between selected nodes');
+                    return;
+                }
+
+                // Show loading state
+                const altBtn = document.getElementById('findAlternatives');
+                altBtn.innerHTML = '<span>⌛</span> Finding alternatives...';
+                altBtn.disabled = true;
+
+                // Use setTimeout to allow UI to update
+                setTimeout(() => {
+                    const alternatives = findAlternativePaths(from, to, currentMetric, 3);
+
+                    // Reset button
+                    altBtn.innerHTML = '<span>🔄</span> Show Alternative Paths';
+                    altBtn.disabled = false;
+
+                    if (alternatives.length === 0) {
+                        alert('No alternative paths found');
+                        document.getElementById('alternativePaths').style.display = 'none';
+                        return;
+                    }
+
+                    const alternativesList = document.getElementById('alternativesList');
+                    alternativesList.innerHTML = '';
+                    
+                    alternatives.forEach((path, idx) => {
+                        const metrics = calculatePathMetrics(path);
+                        const div = document.createElement('div');
+                        div.className = 'alt-path-item';
+                        div.innerHTML = `
+                            <div class="path-info">
+                                <span class="badge ${currentMetric}">Option ${idx + 1}</span>
+                                <span>${path.join(' → ')}</span>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <span class="badge distance">${metrics.distance}km</span>
+                                <span class="badge time">${metrics.time}m</span>
+                                <span class="badge fuel">${metrics.fuel}L</span>
+                            </div>
+                        `;
+                        
+                        div.addEventListener('click', () => {
+                            // Update main display with this path
+                            const pathSteps = document.getElementById('pathSteps');
+                            pathSteps.innerHTML = '';
+                            path.forEach((node, index) => {
+                                const span = document.createElement('span');
+                                span.className = 'path-node';
+                                span.textContent = node;
+                                pathSteps.appendChild(span);
+                                if (index < path.length - 1) {
+                                    const arrow = document.createElement('span');
+                                    arrow.className = 'path-arrow';
+                                    arrow.textContent = '→';
+                                    pathSteps.appendChild(arrow);
+                                }
+                            });
+                            
+                            document.getElementById('totalDistance').textContent = metrics.distance.toFixed(1);
+                            document.getElementById('totalTime').textContent = Math.round(metrics.time);
+                            document.getElementById('totalFuel').textContent = metrics.fuel.toFixed(2);
+                            
+                            // Draw with this path highlighted and alternatives shown
+                            drawGraph(path, alternatives);
+                        });
+                        
+                        alternativesList.appendChild(div);
+                    });
+
+                    document.getElementById('alternativePaths').style.display = 'block';
+                    drawGraph(mainPath, alternatives);
+                }, 100);
+            });
+
+            document.getElementById('findPath').addEventListener('click', findPath);
+
+            // Initial draw
+            findPath();
+        })();
+    </script>
+</body>
+</html>
